@@ -272,6 +272,15 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* New style for notes */
+    .card-note {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+      line-height: 1.4;
+      white-space: normal; /* allow wrapping */
+      word-break: break-word;
+    }
 
     /* No action buttons — removed */
 
@@ -500,7 +509,7 @@
     /* ============================================================
        PASTE YOUR APPS SCRIPT WEB APP URL HERE
        ============================================================ */
-    const API_URL = "https://script.google.com/macros/s/AKfycbzXhDAjbilflWJMdK4Y9O6mWqge-q_-conDT6cggIUIYiFARLywjWzyFGbBSQhD4Oc9/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxzATFF_Dp2OwYHJWN3UwMG3jHXy1NglbFdDm795b2TWozA1xrApABpHnz82uWmvm8X/exec";
 
     let items = [];
     let pendingUnlockId = null;
@@ -559,6 +568,7 @@
           <div class="card-body">
             <div class="card-name">${escapeHtml(item.name)}</div>
             <div class="card-link">${item.locked ? 'Locked — click to unlock' : escapeHtml(item.link || '')}</div>
+            ${item.note ? `<div class="card-note">${escapeHtml(item.note)}</div>` : ''}
           </div>
           <!-- no edit/delete buttons -->
         </div>
