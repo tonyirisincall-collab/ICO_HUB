@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f4f6fb;
+    --bg-2: #eef1fb;
+    --card: #ffffff;
+    --ink: #1f2440;
+    --ink-soft: #6b7191;
+    --indigo: #5b5ff0;
+    --indigo-soft: #eceafd;
+    --mint: #2fd6b0;
+    --coral: #ff7a7a;
+    --coral-soft: #ffeceb;
+    --ring: rgba(91,95,240,0.18);
+    --shadow: 0 10px 30px rgba(40,44,90,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #e3e9ff 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, #e2fbf3 0%, transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+    padding:40px 24px 80px;
+  }
+  .wrap{max-width:860px;margin:0 auto;}
+
+  /* ---- Header / signature hub mark ---- */
+  header{display:flex;align-items:center;gap:18px;margin-bottom:34px;}
+  .hub-mark{width:52px;height:52px;flex-shrink:0;}
+  .hub-mark .node{transform-origin:center;animation:pulse 2.6s ease-in-out infinite;}
+  .hub-mark .node:nth-child(2){animation-delay:.3s;}
+  .hub-mark .node:nth-child(3){animation-delay:.6s;}
+  .hub-mark .node:nth-child(4){animation-delay:.9s;}
+  @keyframes pulse{
+    0%,100%{opacity:.55;transform:scale(1);}
+    50%{opacity:1;transform:scale(1.18);}
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:28px;font-weight:700;margin:0;letter-spacing:-0.02em;
+  }
+  .sub{color:var(--ink-soft);font-size:13.5px;margin-top:2px;}
+
+  /* ---- Search + add row ---- */
+  .toolbar{display:flex;gap:12px;margin-bottom:22px;}
+  .search{
+    flex:1;display:flex;align-items:center;gap:10px;
+    background:var(--card);border-radius:16px;padding:12px 16px;
+    box-shadow:var(--shadow);border:1px solid rgba(31,36,64,0.05);
+    transition:box-shadow .2s, border-color .2s;
+  }
+  .search:focus-within{box-shadow:0 0 0 4px var(--ring);border-color:var(--indigo);}
+  .search svg{flex-shrink:0;color:var(--ink-soft);}
+  .search input{
+    border:none;outline:none;font-family:'Inter',sans-serif;font-size:14.5px;
+    width:100%;background:transparent;color:var(--ink);
+  }
+  .add-btn{
+    display:flex;align-items:center;gap:8px;
+    background:var(--indigo);color:#fff;border:none;border-radius:16px;
+    padding:0 20px;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;
+    cursor:pointer;box-shadow:0 8px 20px rgba(91,95,240,0.28);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .add-btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(91,95,240,0.36);}
+  .add-btn:active{transform:translateY(0);}
+
+  /* ---- Cards ---- */
+  #list{display:flex;flex-direction:column;gap:10px;}
+  .card{
+    background:var(--card);border-radius:16px;padding:14px 16px;
+    display:flex;align-items:center;gap:14px;
+    box-shadow:var(--shadow);border:1px solid rgba(31,36,64,0.05);
+    cursor:pointer;position:relative;overflow:hidden;
+    opacity:0;transform:translateY(10px);
+    animation:rise .45s ease forwards;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(40,44,90,0.12);}
+  @keyframes rise{to{opacity:1;transform:translateY(0);}}
+
+  .icon-badge{
+    width:38px;height:38px;border-radius:11px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--indigo-soft);color:var(--indigo);
+  }
+  .card.locked .icon-badge{background:var(--coral-soft);color:var(--coral);}
+
+  .card-body{flex:1;min-width:0;}
+  .card-name{font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card-link{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .card-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s ease;}
+  .card:hover .card-actions{opacity:1;}
+  .icon-btn{
+    width:30px;height:30px;border-radius:9px;border:none;background:var(--bg-2);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+    transition:background .15s ease, color .15s ease;
+  }
+  .icon-btn:hover{background:var(--indigo-soft);color:var(--indigo);}
+  .icon-btn.danger:hover{background:var(--coral-soft);color:var(--coral);}
+
+  .empty{
+    text-align:center;padding:60px 20px;color:var(--ink-soft);
+  }
+  .empty svg{margin-bottom:14px;opacity:.6;}
+
+  /* ---- Modal ---- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(31,36,64,0.35);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .overlay.show{display:flex;animation:fadeIn .2s ease;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  .modal{
+    background:var(--card);border-radius:20px;padding:26px;width:100%;max-width:380px;
+    box-shadow:0 24px 60px rgba(20,24,50,0.25);
+    animation:pop .25s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.92) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+  .modal h2{font-family:'Space Grotesk',sans-serif;font-size:19px;margin:0 0 16px;}
+  .field{margin-bottom:12px;}
+  .field label{font-size:12.5px;color:var(--ink-soft);font-weight:500;display:block;margin-bottom:5px;}
+  .field input{
+    width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e6e8f4;
+    font-family:'Inter',sans-serif;font-size:14px;outline:none;transition:border-color .15s;
+  }
+  .field input:focus{border-color:var(--indigo);}
+  .field small{color:var(--ink-soft);font-size:11px;}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .btn{flex:1;padding:11px;border-radius:11px;border:none;font-weight:600;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .btn-primary{background:var(--indigo);color:#fff;}
+  .btn-primary:hover{background:#4d51e0;}
+  .btn-ghost{background:var(--bg-2);color:var(--ink-soft);}
+  .btn-ghost:hover{background:#e2e5f5;}
+  .btn-danger{background:var(--coral-soft);color:var(--coral);}
+  .error-msg{color:var(--coral);font-size:12.5px;margin-top:8px;min-height:14px;}
+
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-size:13.5px;
+    opacity:0;transition:all .25s ease;pointer-events:none;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--mint);display:inline-block;margin-right:6px;animation:blink 2s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="hub-mark" viewBox="0 0 52 52" fill="none">
+      <circle class="node" cx="26" cy="12" r="4.5" fill="#5b5ff0"/>
+      <circle class="node" cx="40" cy="32" r="4.5" fill="#2fd6b0"/>
+      <circle class="node" cx="12" cy="32" r="4.5" fill="#ff7a7a"/>
+      <circle cx="26" cy="30" r="6" fill="#1f2440"/>
+      <line x1="26" y1="16.5" x2="26" y2="26" stroke="#c7cbf2" stroke-width="2"/>
+      <line x1="36.5" y1="29.5" x2="30" y2="30" stroke="#c7cbf2" stroke-width="2"/>
+      <line x1="15.5" y1="29.5" x2="22" y2="30" stroke="#c7cbf2" stroke-width="2"/>
+    </svg>
+    <div>
+      <h1>HUB</h1>
+      <div class="sub"><span class="status-dot"></span>synced with Google Sheets</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Search…" oninput="renderList()">
+    </div>
+    <button class="add-btn" onclick="openAddModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add
+    </button>
+  </div>
+
+  <div id="list"></div>
+
+</div>
+
+<!-- Add / Edit modal -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <h2 id="editTitle">Add item</h2>
+    <div class="field">
+      <label>Name</label>
+      <input id="fName" placeholder="e.g. Client Onboarding Doc">
+    </div>
+    <div class="field">
+      <label>Link</label>
+      <input id="fLink" placeholder="https://…">
+    </div>
+    <div class="field">
+      <label>Password (optional)</label>
+      <input id="fPass" placeholder="Leave empty to keep it open">
+      <small>Set this to lock the item — anyone opening it will be asked for this password first.</small>
+    </div>
+    <div class="error-msg" id="editError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('editOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unlock modal -->
+<div class="overlay" id="unlockOverlay">
+  <div class="modal">
+    <h2>This item is locked</h2>
+    <div class="field">
+      <label>Password</label>
+      <input id="unlockPass" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')submitUnlock()">
+    </div>
+    <div class="error-msg" id="unlockError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('unlockOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitUnlock()">Open</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="overlay" id="deleteOverlay">
+  <div class="modal">
+    <h2>Delete this item?</h2>
+    <p style="color:var(--ink-soft);font-size:14px;margin-top:-6px;">This removes the row from the Google Sheet too. This can't be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('deleteOverlay')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =======================================================
+   PASTE YOUR APPS SCRIPT WEB APP URL HERE — this is the
+   only place the API endpoint lives. It never appears
+   anywhere in the HTML markup above, only here in the code.
+   ======================================================= */
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+let items = [];
+let editingId = null;      // null = adding new, otherwise id of item being edited
+let pendingUnlockId = null;
+let pendingDeleteId = null;
+const POLL_MS = 4000;      // how often we re-sync with the sheet
+
+const lockSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+const linkSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 15l6-6"/><path d="M11 6l1-1a4 4 0 0 1 6 6l-1 1"/><path d="M13 18l-1 1a4 4 0 0 1-6-6l1-1"/></svg>`;
+const editSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const trashSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+async function api(action, params={}){
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  const res = await fetch(url.toString());
+  return res.json();
+}
+
+async function loadItems(silent){
+  try{
+    const data = await api('list');
+    if(data.success){
+      items = data.items;
+      renderList();
+    } else if(!silent){
+      showToast('Could not load sheet: ' + data.error);
+    }
+  }catch(err){
+    if(!silent) showToast('Connection error — check the API_URL in the code.');
+  }
+}
+
+function renderList(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const list = document.getElementById('list');
+  const filtered = items.filter(i => i.name.toLowerCase().includes(q));
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <div>${q ? 'Nothing matches your search' : 'No items yet — add your first one'}</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map((item, idx) => `
+    <div class="card ${item.locked ? 'locked' : ''}" style="animation-delay:${idx*35}ms" onclick="handleCardClick(${item.id})">
+      <div class="icon-badge">${item.locked ? lockSVG : linkSVG}</div>
+      <div class="card-body">
+        <div class="card-name">${escapeHtml(item.name)}</div>
+        <div class="card-link">${item.locked ? 'Locked — click to unlock' : escapeHtml(item.link || '')}</div>
+      </div>
+      <div class="card-actions">
+        <button class="icon-btn" title="Edit" onclick="event.stopPropagation(); openEditModal(${item.id})">${editSVG}</button>
+        <button class="icon-btn danger" title="Delete" onclick="event.stopPropagation(); openDeleteModal(${item.id})">${trashSVG}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function handleCardClick(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  if(item.locked){
+    pendingUnlockId = id;
+    document.getElementById('unlockPass').value = '';
+    document.getElementById('unlockError').textContent = '';
+    openModal('unlockOverlay');
+    setTimeout(()=>document.getElementById('unlockPass').focus(), 150);
+  }else{
+    window.open(item.link, '_blank');
+  }
+}
+
+async function submitUnlock(){
+  const pass = document.getElementById('unlockPass').value;
+  const data = await api('unlock', { id: pendingUnlockId, password: pass });
+  if(data.success){
+    closeModal('unlockOverlay');
+    window.open(data.link, '_blank');
+  }else{
+    document.getElementById('unlockError').textContent = 'Wrong password — try again.';
+  }
+}
+
+function openAddModal(){
+  editingId = null;
+  document.getElementById('editTitle').textContent = 'Add item';
+  document.getElementById('fName').value = '';
+  document.getElementById('fLink').value = '';
+  document.getElementById('fPass').value = '';
+  document.getElementById('editError').textContent = '';
+  openModal('editOverlay');
+}
+
+function openEditModal(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('editTitle').textContent = 'Edit item';
+  document.getElementById('fName').value = item.name;
+  document.getElementById('fLink').value = item.locked ? '' : (item.link || '');
+  document.getElementById('fPass').value = '';
+  document.getElementById('editError').textContent = item.locked ? '' : '';
+  if(item.locked){
+    document.getElementById('fLink').placeholder = 'Locked — leave empty to keep current link';
+  }
+  openModal('editOverlay');
+}
+
+async function submitEdit(){
+  const name = document.getElementById('fName').value.trim();
+  const link = document.getElementById('fLink').value.trim();
+  const pass = document.getElementById('fPass').value;
+
+  if(editingId === null){
+    if(!name || !link){
+      document.getElementById('editError').textContent = 'Name and link are both required.';
+      return;
+    }
+    const data = await api('add', { name, link, password: pass });
+    if(data.success){ closeModal('editOverlay'); showToast('Added'); loadItems(); }
+    else document.getElementById('editError').textContent = data.error || 'Something went wrong.';
+  }else{
+    const data = await api('update', { id: editingId, name, link, password: pass });
+    if(data.success){ closeModal('editOverlay'); showToast('Saved'); loadItems(); }
+    else document.getElementById('editError').textContent = data.error || 'Something went wrong.';
+  }
+}
+
+function openDeleteModal(id){
+  pendingDeleteId = id;
+  openModal('deleteOverlay');
+}
+
+async function confirmDelete(){
+  const data = await api('delete', { id: pendingDeleteId });
+  closeModal('deleteOverlay');
+  if(data.success){ showToast('Deleted'); loadItems(); }
+  else showToast('Could not delete: ' + data.error);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if(e.target === ov) ov.classList.remove('show'); });
+});
+
+loadItems();
+setInterval(() => loadItems(true), POLL_MS);
+</script>
+</body>
+</html>
