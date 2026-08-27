@@ -214,7 +214,7 @@
       border-radius: 16px;
       padding: 14px 16px;
       display: flex;
-      align-items: center;
+      align-items: flex-start; /* changed to allow note wrapping */
       gap: 14px;
       box-shadow: var(--shadow);
       border: 1px solid rgba(31, 36, 64, 0.05);
@@ -265,24 +265,38 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .card-link {
-      font-size: 12.5px;
-      color: var(--ink-soft);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    /* Removed .card-link style, no longer needed */
+
     /* New style for notes */
     .card-note {
-      font-size: 12.5px;
-      color: var(--ink-soft);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       margin-top: 4px;
+      font-size: 13px;
+      color: var(--ink-soft);
       line-height: 1.4;
-      white-space: normal; /* allow wrapping */
       word-break: break-word;
     }
-
-    /* No action buttons — removed */
+    .card-note-text {
+      flex: 1;
+      white-space: pre-wrap; /* preserve newlines if any */
+    }
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--indigo);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover {
+      background: var(--indigo-soft);
+    }
 
     .empty {
       text-align: center;
@@ -509,7 +523,7 @@
     /* ============================================================
        PASTE YOUR APPS SCRIPT WEB APP URL HERE
        ============================================================ */
-    const API_URL = "https://script.google.com/macros/s/AKfycbxzATFF_Dp2OwYHJWN3UwMG3jHXy1NglbFdDm795b2TWozA1xrApABpHnz82uWmvm8X/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwruEbkjQpEJVOFo3fefiv3yjEpSv6V87c0e3FyeCHgCq9a7JVzmNTn_zCxw1Jg5MXN/exec";
 
     let items = [];
     let pendingUnlockId = null;
@@ -567,10 +581,14 @@
           <div class="icon-badge">${item.locked ? lockSVG : linkSVG}</div>
           <div class="card-body">
             <div class="card-name">${escapeHtml(item.name)}</div>
-            <div class="card-link">${item.locked ? 'Locked — click to unlock' : escapeHtml(item.link || '')}</div>
-            ${item.note ? `<div class="card-note">${escapeHtml(item.note)}</div>` : ''}
+            ${item.note ? `
+              <div class="card-note" onclick="event.stopPropagation();">
+                <div class="card-note-text">${escapeHtml(item.note)}</div>
+                <button class="copy-btn" onclick="copyNote('${escapeHtml(item.note)}')">COPY</button>
+              </div>
+            ` : ''}
           </div>
-          <!-- no edit/delete buttons -->
+          <!-- no edit/delete buttons, no link display -->
         </div>
       `).join('');
     }
@@ -589,8 +607,34 @@
         openModal('unlockOverlay');
         setTimeout(() => document.getElementById('unlockPass').focus(), 150);
       } else {
+        // Open the link in a new tab (link not shown but still works)
         window.open(item.link, '_blank');
       }
+    }
+
+    function copyNote(text) {
+      // Use Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showToast('Note copied to clipboard'))
+          .catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Note copied to clipboard');
+      } catch (err) {
+        showToast('Failed to copy');
+      }
+      document.body.removeChild(textarea);
     }
 
     async function submitUnlock() {
