@@ -1,665 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HUB · Dynamic Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HUB</title>
+  <!-- Favicon: Eye of Horus (inline SVG) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10 L62 30 L58 50 L50 70 L42 50 L38 30 Z' fill='%235b5ff0' opacity='.8'/%3E%3Cpath d='M38 30 L50 10 L62 30 L58 50 L50 70 L42 50 Z' fill='none' stroke='%232fd6b0' stroke-width='3'/%3E%3Ccircle cx='50' cy='40' r='5' fill='%23ff7a7a'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --primary: #3b82f6;
-      --primary-light: #60a5fa;
-      --secondary: #facc15;
-      --accent: #f472b6;
-      --dark: #1e293b;
-      --darker: #0f172a;
-      --light: #f8fafc;
-      --gray: #64748b;
-      --card-bg: rgba(255,255,255,0.92);
-      --card-dark: rgba(30,41,59,0.92);
-      --transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      --glow: 0 0 20px rgba(59,130,246,0.5);
+      --bg: #f4f6fb;
+      --bg-2: #eef1fb;
+      --card: #ffffff;
+      --ink: #1f2440;
+      --ink-soft: #6b7191;
+      --indigo: #5b5ff0;
+      --indigo-soft: #eceafd;
+      --mint: #2fd6b0;
+      --coral: #ff7a7a;
+      --coral-soft: #ffeceb;
+      --ring: rgba(91, 95, 240, 0.18);
+      --shadow: 0 10px 30px rgba(40, 44, 90, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
     }
     body {
-      margin: 0; overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #f8fafc;
-      height: 100vh; width: 100vw;
-      perspective: 1000px;
-      transition: var(--transition);
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 85% -10%, #e3e9ff 0%, transparent 60%),
+        radial-gradient(900px 500px at -10% 10%, #e2fbf3 0%, transparent 55%),
+        var(--bg);
+      background-attachment: fixed;
+      padding: 40px 24px 80px;
     }
-    body.light-mode {
-      background: linear-gradient(135deg, #f0f7ff 0%, #e0f0ff 100%);
-      color: #1e293b;
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
     }
-    .grid-bg {
-      position: fixed; inset: 0;
-      background: 
-        linear-gradient(rgba(59,130,246,0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.08) 1px, transparent 1px);
-      background-size: 50px 50px;
-      transform: perspective(500px) rotateX(60deg);
-      animation: gridMove 20s infinite linear;
-      z-index: -1;
-      pointer-events: none;
+
+    /* ---- Header with spinning orbit ---- */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 34px;
+      position: relative;
     }
-    .light-mode .grid-bg {
-      background: 
-        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    .hub-mark-wrapper {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
     }
-    .floating-elements {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    .hub-mark {
+      width: 52px;
+      height: 52px;
+      position: relative;
+      z-index: 2;
     }
-    .particle {
-      position: absolute; border-radius: 50%;
-      background: radial-gradient(circle, var(--primary-light), transparent);
-      opacity: 0.4;
-      animation: float 20s infinite alternate ease-in-out;
+    .hub-mark .node {
+      transform-origin: center;
+      animation: pulse 2.6s ease-in-out infinite;
     }
-    .light-mode .particle {
-      background: radial-gradient(circle, var(--primary), transparent);
-      opacity: 0.2;
+    .hub-mark .node:nth-child(2) {
+      animation-delay: .3s;
     }
-    #hubCanvas {
-      position: fixed; inset: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 1;
+    .hub-mark .node:nth-child(3) {
+      animation-delay: .6s;
     }
-    /* ---- Controls ---- */
-    .controls {
-      position: fixed; top: 25px; right: 25px; z-index: 20;
-      display: flex; gap: 12px;
+    .hub-mark .node:nth-child(4) {
+      animation-delay: .9s;
     }
-    .control-btn {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: var(--card-dark); border: none;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      color: var(--light); transition: var(--transition);
-      font-size: 1.1rem;
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: .55;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.18);
+      }
     }
-    .light-mode .control-btn {
-      background: var(--card-bg); color: var(--dark);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    .control-btn:hover { transform: scale(1.15) rotate(6deg); box-shadow: var(--glow); }
-    .search-container {
-      position: fixed; top: 25px; left: 25px; z-index: 20;
-    }
-    .search-box {
-      display: flex; align-items: center;
-      background: var(--card-dark); border-radius: 50px;
-      padding: 8px 18px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      transition: var(--transition); width: 280px;
-      backdrop-filter: blur(10px);
-    }
-    .light-mode .search-box {
-      background: var(--card-bg); box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    .search-box:focus-within { transform: scale(1.04); box-shadow: var(--glow); }
-    .search-box input {
-      background: transparent; border: none; outline: none;
-      color: var(--light); font-size: 0.9rem; width: 100%; padding: 5px 10px;
-    }
-    .light-mode .search-box input { color: var(--dark); }
-    .search-box input::placeholder { color: var(--gray); }
-    .search-icon { color: var(--primary-light); font-size: 1rem; }
-    .light-mode .search-icon { color: var(--primary); }
-    .clear-search {
-      color: var(--gray); cursor: pointer; font-size: 0.9rem;
-      padding: 0 5px; transition: var(--transition);
-      opacity: 0;
-    }
-    .clear-search.visible { opacity: 1; }
-    .clear-search:hover { color: var(--error); }
-    /* ---- Theme selector ---- */
-    .theme-selector {
-      position: fixed; bottom: 25px; left: 25px; z-index: 20;
-      display: flex; gap: 10px;
-      background: var(--card-dark); padding: 10px;
-      border-radius: 50px; backdrop-filter: blur(10px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    .light-mode .theme-selector {
-      background: var(--card-bg); box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    .theme-btn {
-      width: 30px; height: 30px; border-radius: 50%; border: none;
-      cursor: pointer; transition: var(--transition);
-    }
-    .theme-btn:hover { transform: scale(1.15); }
-    .theme-btn.dark { background: linear-gradient(135deg, #0f172a, #1e293b); }
-    .theme-btn.light { background: linear-gradient(135deg, #f0f7ff, #e0f0ff); }
-    /* ---- Center Orb ---- */
-    .centerOrb {
-      position: absolute; width: 170px; height: 170px;
-      border-radius: 50%; top: 50%; left: 50%;
+
+    /* Spinning orbit ring */
+    .orbit-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 70px;
+      height: 70px;
       transform: translate(-50%, -50%);
-      background: radial-gradient(circle at 30% 30%, var(--primary-light), var(--primary));
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: white; font-weight: 700; font-size: 1.8rem;
-      box-shadow: 0 0 50px rgba(59,130,246,0.6), inset 0 0 20px rgba(255,255,255,0.2);
-      z-index: 5; cursor: pointer; transition: var(--transition);
+      border-radius: 50%;
+      border: 2px dashed rgba(91, 95, 240, 0.2);
+      animation: spin 8s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .orbit-ring::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background: var(--mint);
+      border-radius: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 12px var(--mint);
+    }
+    .orbit-ring::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      right: 50%;
+      width: 6px;
+      height: 6px;
+      background: var(--coral);
+      border-radius: 50%;
+      transform: translateX(50%);
+      box-shadow: 0 0 12px var(--coral);
+    }
+    @keyframes spin {
+      to {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      color: var(--ink-soft);
+      font-size: 13.5px;
+      margin-top: 2px;
+    }
+    .sub .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mint);
+      margin-right: 6px;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: .35;
+      }
+    }
+
+    /* ---- Search only (no add button) ---- */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(31, 36, 64, 0.05);
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .search:focus-within {
+      box-shadow: 0 0 0 4px var(--ring);
+      border-color: var(--indigo);
+    }
+    .search svg {
+      flex-shrink: 0;
+      color: var(--ink-soft);
+    }
+    .search input {
+      border: none;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 14.5px;
+      width: 100%;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    /* ---- Cards ---- */
+    #list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(31, 36, 64, 0.05);
+      cursor: pointer;
+      position: relative;
       overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: rise .45s ease forwards;
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .centerOrb::before {
-      content: ''; position: absolute; width: 50%; height: 180%;
-      background: linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.1));
-      transform: rotate(45deg); animation: shine 4s infinite;
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px rgba(40, 44, 90, 0.12);
     }
-    .centerOrb.pulse { animation: pulse 3s infinite; }
-    .centerOrb:hover {
-      transform: translate(-50%, -50%) scale(1.12);
-      box-shadow: 0 0 70px rgba(59,130,246,0.9), inset 0 0 30px rgba(255,255,255,0.3);
+    @keyframes rise {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
-    .centerOrb span { font-size: 0.9rem; margin-top: 5px; font-weight: 500; opacity: 0.9; }
-    /* ---- Nodes ---- */
-    #nodesContainer { position: relative; width: 100%; height: 100%; }
-    .node {
-      position: absolute; width: 120px; height: 120px;
-      border-radius: 20px; background: var(--card-dark);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      transition: var(--transition); z-index: 4;
-      backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
-      transform-style: preserve-3d;
+
+    .icon-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--indigo-soft);
+      color: var(--indigo);
     }
-    .light-mode .node {
-      background: var(--card-bg); border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    .card.locked .icon-badge {
+      background: var(--coral-soft);
+      color: var(--coral);
     }
-    .node:hover {
-      transform: scale(1.2) translateZ(20px);
-      box-shadow: 0 20px 35px rgba(0,0,0,0.4), 0 0 20px rgba(59,130,246,0.4);
-      z-index: 6;
+
+    .card-body {
+      flex: 1;
+      min-width: 0;
     }
-    .node .icon { 
-      width: 45px; height: 45px; margin-bottom: 8px;
-      color: var(--primary-light); font-size: 2rem;
-      display: flex; align-items: center; justify-content: center;
-      transition: var(--transition);
+    .card-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .light-mode .node .icon { color: var(--primary); }
-    .node:hover .icon { transform: scale(1.2) rotate(10deg); color: var(--secondary); }
-    .node .label {
-      text-align: center; font-weight: 600; color: var(--light);
-      font-size: 0.8rem; padding: 0 8px; max-height: 32px;
-      overflow: hidden; text-overflow: ellipsis;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      transition: var(--transition);
+    .card-link {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .light-mode .node .label { color: var(--dark); }
-    .node:hover .label { color: var(--primary-light); }
-    /* ---- Notifications ---- */
-    .notification {
-      position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
-      background: var(--card-dark); padding: 12px 25px; border-radius: 50px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3); z-index: 100;
-      opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
-      display: flex; align-items: center; gap: 12px; font-weight: 500;
-      backdrop-filter: blur(10px);
+
+    /* No action buttons — removed */
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-soft);
     }
-    .light-mode .notification { background: var(--card-bg); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-    .notification.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
-    .notification.error { background: rgba(239,68,68,0.9); color: white; }
-    /* ---- PIN Modal ---- */
-    .pin-modal {
-      position: fixed; inset: 0; background: rgba(15,23,42,0.9);
-      display: flex; justify-content: center; align-items: center;
-      z-index: 200; backdrop-filter: blur(10px);
-      opacity: 0; visibility: hidden; transition: var(--transition);
+    .empty svg {
+      margin-bottom: 14px;
+      opacity: .6;
     }
-    .pin-modal.active { opacity: 1; visibility: visible; }
-    .light-mode .pin-modal { background: rgba(240,247,255,0.9); }
-    .pin-container {
-      background: var(--card-dark); padding: 2.5rem; border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center;
-      max-width: 400px; width: 90%; transform: scale(0.9);
-      transition: var(--transition);
+
+    /* ---- Modal (only unlock) ---- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(31, 36, 64, 0.35);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
     }
-    .pin-modal.active .pin-container { transform: scale(1); }
-    .light-mode .pin-container { background: var(--card-bg); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-    .pin-title { font-size: 1.5rem; margin-bottom: 1rem; color: var(--light); font-weight: 600; }
-    .light-mode .pin-title { color: var(--dark); }
-    .pin-input {
-      width: 100%; padding: 1rem; margin: 1.5rem 0;
-      border: 2px solid var(--primary); border-radius: 10px;
-      background: rgba(255,255,255,0.1); color: var(--light);
-      font-size: 1.2rem; text-align: center; transition: var(--transition);
+    .overlay.show {
+      display: flex;
+      animation: fadeIn .2s ease;
     }
-    .light-mode .pin-input { background: rgba(255,255,255,0.9); color: var(--dark); border-color: var(--primary); }
-    .pin-input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 15px rgba(250,204,21,0.4); }
-    .pin-buttons { display: flex; gap: 1rem; justify-content: center; }
-    .pin-btn {
-      padding: 0.8rem 2rem; border: none; border-radius: 10px;
-      cursor: pointer; font-weight: 600; transition: var(--transition);
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
-    .pin-btn.submit { background: linear-gradient(90deg, var(--primary), var(--accent)); color: white; }
-    .pin-btn.cancel { background: var(--gray); color: white; }
-    .pin-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-    /* ---- Keyframes ---- */
-    @keyframes pulse { 0%,100%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.1);} }
-    @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg);} 33%{transform:translateY(-25px) rotate(6deg);} 66%{transform:translateY(15px) rotate(-6deg);} }
-    @keyframes shine { 0%{left:-50%;} 20%{left:100%;} 100%{left:100%;} }
-    @keyframes shake { 0%,100%{transform:translateX(0);} 10%,30%,50%,70%,90%{transform:translateX(-6px);} 20%,40%,60%,80%{transform:translateX(6px);} }
-    @media (max-width: 768px) {
-      .centerOrb { width: 130px; height: 130px; font-size: 1.4rem; }
-      .node { width: 100px; height: 100px; }
-      .node .icon { font-size: 1.6rem; }
-      .node .label { font-size: 0.7rem; }
-      .controls { top: 15px; right: 15px; }
-      .control-btn { width: 40px; height: 40px; font-size: 1rem; }
-      .search-container { top: 15px; left: 15px; }
-      .search-box { width: 220px; padding: 6px 15px; }
-      .theme-selector { bottom: 15px; left: 15px; padding: 8px; }
-      .theme-btn { width: 25px; height: 25px; }
+    .modal {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 26px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 24px 60px rgba(20, 24, 50, 0.25);
+      animation: pop .25s cubic-bezier(.2, .9, .3, 1.3);
+    }
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: scale(.92) translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .modal h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 19px;
+      margin: 0 0 16px;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    .field label {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      font-weight: 500;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #e6e8f4;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus {
+      border-color: var(--indigo);
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .btn {
+      flex: 1;
+      padding: 11px;
+      border-radius: 11px;
+      border: none;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-primary {
+      background: var(--indigo);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #4d51e0;
+    }
+    .btn-ghost {
+      background: var(--bg-2);
+      color: var(--ink-soft);
+    }
+    .btn-ghost:hover {
+      background: #e2e5f5;
+    }
+    .error-msg {
+      color: var(--coral);
+      font-size: 12.5px;
+      margin-top: 8px;
+      min-height: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      opacity: 0;
+      transition: all .25s ease;
+      pointer-events: none;
+      z-index: 60;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* decorative spinning ring on cards */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(91, 95, 240, 0.03), transparent 60%);
+      animation: spin-slow 20s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .card:hover::after {
+      opacity: 1;
+    }
+    @keyframes spin-slow {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    /* ensure content stays above */
+    .card>* {
+      position: relative;
+      z-index: 1;
     }
   </style>
 </head>
 <body>
-  <div class="grid-bg"></div>
-  <div class="floating-elements" id="floatingElements"></div>
-  <canvas id="hubCanvas"></canvas>
+  <div class="wrap">
 
-  <!-- Search -->
-  <div class="search-container">
-    <div class="search-box">
-      <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Search links...">
-      <div class="clear-search" id="clearSearch"><i class="fas fa-times"></i></div>
+    <header>
+      <div class="hub-mark-wrapper">
+        <!-- orbit ring -->
+        <div class="orbit-ring"></div>
+        <!-- hub logo -->
+        <svg class="hub-mark" viewBox="0 0 52 52" fill="none">
+          <circle class="node" cx="26" cy="12" r="4.5" fill="#5b5ff0" />
+          <circle class="node" cx="40" cy="32" r="4.5" fill="#2fd6b0" />
+          <circle class="node" cx="12" cy="32" r="4.5" fill="#ff7a7a" />
+          <circle cx="26" cy="30" r="6" fill="#1f2440" />
+          <line x1="26" y1="16.5" x2="26" y2="26" stroke="#c7cbf2" stroke-width="2" />
+          <line x1="36.5" y1="29.5" x2="30" y2="30" stroke="#c7cbf2" stroke-width="2" />
+          <line x1="15.5" y1="29.5" x2="22" y2="30" stroke="#c7cbf2" stroke-width="2" />
+        </svg>
+      </div>
+      <div>
+        <h1>HUB</h1>
+        <div class="sub"><span class="status-dot"></span>synced with Google Sheets</div>
+      </div>
+    </header>
+
+    <!-- toolbar with only search -->
+    <div class="toolbar">
+      <div class="search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <input id="searchInput" placeholder="Search…" oninput="renderList()" />
+      </div>
     </div>
+
+    <div id="list"></div>
+
   </div>
 
-  <!-- Controls -->
-  <div class="controls">
-    <button class="control-btn" id="themeToggle" title="Toggle theme"><i class="fas fa-moon"></i></button>
-    <button class="control-btn" id="infoBtn" title="Info"><i class="fas fa-info"></i></button>
-    <button class="control-btn" id="refreshBtn" title="Refresh"><i class="fas fa-sync-alt"></i></button>
-  </div>
-
-  <!-- Theme selector -->
-  <div class="theme-selector">
-    <button class="theme-btn dark" data-theme="dark"></button>
-    <button class="theme-btn light" data-theme="light"></button>
-  </div>
-
-  <!-- Central Orb -->
-  <div class="centerOrb pulse">
-    <i class="fas fa-stars"></i>
-    <span>HUB</span>
-  </div>
-
-  <div id="nodesContainer"></div>
-
-  <!-- Notification -->
-  <div class="notification" id="notification">
-    <i class="fas fa-check-circle" style="color: var(--success);"></i>
-    <span id="notificationText"></span>
-  </div>
-
-  <!-- PIN Modal -->
-  <div class="pin-modal" id="pinModal">
-    <div class="pin-container">
-      <h2 class="pin-title" id="pinTitle">Enter PIN</h2>
-      <input type="password" class="pin-input" id="pinInput" placeholder="PIN" maxlength="10">
-      <div class="pin-buttons">
-        <button class="pin-btn submit" id="pinSubmit">Submit</button>
-        <button class="pin-btn cancel" id="pinCancel">Cancel</button>
+  <!-- Unlock modal (only) -->
+  <div class="overlay" id="unlockOverlay">
+    <div class="modal">
+      <h2>🔐 This item is locked</h2>
+      <div class="field">
+        <label>Password</label>
+        <input id="unlockPass" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')submitUnlock()" />
+      </div>
+      <div class="error-msg" id="unlockError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('unlockOverlay')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitUnlock()">Open</button>
       </div>
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
-    // ============================================================
-    // CONFIG — paste your Apps Script web app URL here
-    // ============================================================
+    /* ============================================================
+       PASTE YOUR APPS SCRIPT WEB APP URL HERE
+       ============================================================ */
     const API_URL = "https://script.google.com/macros/s/AKfycbzXhDAjbilflWJMdK4Y9O6mWqge-q_-conDT6cggIUIYiFARLywjWzyFGbBSQhD4Oc9/exec";
 
-    // ============================================================
-    // GLOBALS
-    // ============================================================
-    const nodesContainer = document.getElementById('nodesContainer');
-    const floatingElements = document.getElementById('floatingElements');
-    const pinModal = document.getElementById('pinModal');
-    const pinTitle = document.getElementById('pinTitle');
-    const pinInput = document.getElementById('pinInput');
-    const pinSubmit = document.getElementById('pinSubmit');
-    const pinCancel = document.getElementById('pinCancel');
-    const searchInput = document.getElementById('searchInput');
-    const clearSearch = document.getElementById('clearSearch');
-    let nodeElems = [];
-    let links = [];
-    let currentTheme = 'dark';
-    let animationRunning = true;
-    let currentLink = null;
-    let nodesAnimationId, linesAnimationId;
-    let originalNodeElems = [];
+    let items = [];
+    let pendingUnlockId = null;
+    const POLL_MS = 4000; // auto‑refresh
 
-    // ============================================================
-    // INIT
-    // ============================================================
-    window.addEventListener('load', () => {
-      createParticles();
-      loadLinksFromSheet();
-      setupEventListeners();
-      startAnimations();
-    });
+    const lockSVG =
+      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+    const linkSVG =
+      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 15l6-6"/><path d="M11 6l1-1a4 4 0 0 1 6 6l-1 1"/><path d="M13 18l-1 1a4 4 0 0 1-6-6l1-1"/></svg>`;
 
-    // ============================================================
-    // LOAD DATA FROM SHEET
-    // ============================================================
-    async function loadLinksFromSheet() {
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    async function api(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.set('action', action);
+      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+      const res = await fetch(url.toString());
+      return res.json();
+    }
+
+    async function loadItems(silent) {
       try {
-        const res = await fetch(API_URL + '?action=list');
-        const data = await res.json();
+        const data = await api('list');
         if (data.success) {
-          links = data.items.map(item => ({
-            title: item.name,
-            url: item.link,
-            pin: item.locked ? '1234' : '', // placeholder – replace with real PIN from sheet
-            icon: 'fas fa-link' // default – you can assign icons per item if you have a column
-          }));
-          // If your sheet has an icon column, you can map it here.
-          createNodes();
-          showNotification(`Loaded ${links.length} links`);
-        } else {
-          showNotification('Failed to load data', true);
-          links = [];
-          createNodes();
+          items = data.items;
+          renderList();
+        } else if (!silent) {
+          showToast('Could not load sheet: ' + data.error);
         }
       } catch (err) {
-        showNotification('Connection error – check API_URL', true);
-        links = [];
-        createNodes();
+        if (!silent) showToast('Connection error — check the API_URL in the code.');
       }
     }
 
-    // ============================================================
-    // CREATE PARTICLES
-    // ============================================================
-    function createParticles() {
-      for (let i = 0; i < 40; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = Math.random() * 80 + 20;
-        p.style.width = size + 'px';
-        p.style.height = size + 'px';
-        const colors = ['#3b82f6','#60a5fa','#f472b6','#facc15'];
-        p.style.background = `radial-gradient(circle, ${colors[i%4]}40, transparent)`;
-        p.style.top = Math.random() * 100 + '%';
-        p.style.left = Math.random() * 100 + '%';
-        p.style.animationDelay = Math.random() * 10 + 's';
-        p.style.animationDuration = (15 + Math.random() * 15) + 's';
-        floatingElements.appendChild(p);
-      }
-    }
+    function renderList() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const list = document.getElementById('list');
+      const filtered = items.filter(i => i.name.toLowerCase().includes(q));
 
-    // ============================================================
-    // CREATE NODES
-    // ============================================================
-    function createNodes() {
-      nodesContainer.innerHTML = '';
-      nodeElems = [];
-      if (!links.length) {
-        // Show a placeholder message? We'll just leave empty.
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div>${q ? 'Nothing matches your search' : 'No items yet — add them in the Google Sheet'}</div>
+        </div>`;
         return;
       }
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const radius = Math.min(centerX, centerY) * 0.7;
 
-      links.forEach((lnk, i) => {
-        const node = document.createElement('div');
-        node.className = 'node';
-        node.setAttribute('data-title', lnk.title.toLowerCase());
-        node.innerHTML = `
-          <div class="icon"><i class="${lnk.icon || 'fas fa-link'}"></i></div>
-          <div class="label">${lnk.title}</div>
-        `;
-        if (lnk.pin) {
-          node.innerHTML += `<div class="icon" style="position:absolute;top:5px;right:5px;font-size:0.8rem;margin:0;"><i class="fas fa-lock"></i></div>`;
-        }
-        node.onclick = () => handleNodeClick(lnk);
-        nodesContainer.appendChild(node);
-
-        const angle = i * (360 / links.length);
-        const variance = 0.2 + Math.random() * 0.3;
-        nodeElems.push({
-          el: node,
-          angle: angle,
-          speed: 0.2 + Math.random() * 0.1,
-          radiusX: radius * (0.9 + variance),
-          radiusY: radius * (0.7 + variance),
-          offset: Math.random() * 100
-        });
-      });
-      originalNodeElems = [...nodeElems];
+      list.innerHTML = filtered.map((item, idx) => `
+        <div class="card ${item.locked ? 'locked' : ''}" style="animation-delay:${idx * 35}ms" onclick="handleCardClick(${item.id})">
+          <div class="icon-badge">${item.locked ? lockSVG : linkSVG}</div>
+          <div class="card-body">
+            <div class="card-name">${escapeHtml(item.name)}</div>
+            <div class="card-link">${item.locked ? 'Locked — click to unlock' : escapeHtml(item.link || '')}</div>
+          </div>
+          <!-- no edit/delete buttons -->
+        </div>
+      `).join('');
     }
 
-    // ============================================================
-    // NODE CLICK + PIN
-    // ============================================================
-    function handleNodeClick(link) {
-      if (!link.pin) {
-        window.open(link.url, '_blank');
-        showNotification('Opening ' + link.title);
-        launchConfetti();
-        return;
-      }
-      currentLink = link;
-      pinTitle.textContent = 'Enter PIN for ' + link.title;
-      pinInput.value = '';
-      pinModal.classList.add('active');
-      pinInput.focus();
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } [c]));
     }
 
-    function verifyPin() {
-      const entered = pinInput.value.trim();
-      if (!currentLink) { closePinModal(); return; }
-      if (entered === currentLink.pin) {
-        window.open(currentLink.url, '_blank');
-        showNotification('PIN correct – opening ' + currentLink.title);
-        launchConfetti();
-        closePinModal();
+    function handleCardClick(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      if (item.locked) {
+        pendingUnlockId = id;
+        document.getElementById('unlockPass').value = '';
+        document.getElementById('unlockError').textContent = '';
+        openModal('unlockOverlay');
+        setTimeout(() => document.getElementById('unlockPass').focus(), 150);
       } else {
-        showNotification('Wrong PIN', true);
-        pinInput.value = '';
-        pinInput.focus();
-        pinInput.style.animation = 'none';
-        setTimeout(() => pinInput.style.animation = 'shake 0.5s', 10);
+        window.open(item.link, '_blank');
       }
     }
 
-    function closePinModal() {
-      pinModal.classList.remove('active');
-      currentLink = null;
-      pinInput.value = '';
-    }
-
-    // ============================================================
-    // SEARCH
-    // ============================================================
-    function filterNodes(term) {
-      if (!term) {
-        nodeElems = [...originalNodeElems];
-        nodeElems.forEach(n => n.el.style.display = 'flex');
-        return;
-      }
-      const t = term.toLowerCase().trim();
-      let count = 0;
-      nodeElems.forEach(n => {
-        const title = n.el.getAttribute('data-title');
-        if (title.includes(t)) { n.el.style.display = 'flex'; count++; }
-        else { n.el.style.display = 'none'; }
-      });
-      if (t.length) showNotification(`Found ${count} matches`);
-    }
-
-    function clearSearchInput() {
-      searchInput.value = '';
-      filterNodes('');
-      clearSearch.classList.remove('visible');
-      showNotification('Search cleared');
-    }
-
-    // ============================================================
-    // THEME
-    // ============================================================
-    function changeTheme(theme) {
-      document.body.className = '';
-      document.body.classList.add(theme + '-mode');
-      currentTheme = theme;
-      const icon = document.querySelector('#themeToggle i');
-      icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-      showNotification('Theme: ' + theme);
-    }
-
-    // ============================================================
-    // NOTIFICATIONS
-    // ============================================================
-    function showNotification(msg, isError = false) {
-      const notif = document.getElementById('notification');
-      const text = document.getElementById('notificationText');
-      text.textContent = msg;
-      const icon = notif.querySelector('i');
-      if (isError) {
-        notif.classList.add('error');
-        icon.className = 'fas fa-exclamation-circle';
-        icon.style.color = 'var(--error)';
+    async function submitUnlock() {
+      const pass = document.getElementById('unlockPass').value;
+      const data = await api('unlock', { id: pendingUnlockId, password: pass });
+      if (data.success) {
+        closeModal('unlockOverlay');
+        window.open(data.link, '_blank');
       } else {
-        notif.classList.remove('error');
-        icon.className = 'fas fa-check-circle';
-        icon.style.color = 'var(--success)';
-      }
-      notif.classList.add('show');
-      clearTimeout(notif._timeout);
-      notif._timeout = setTimeout(() => notif.classList.remove('show'), 3000);
-    }
-
-    // ============================================================
-    // ANIMATIONS (nodes & lines)
-    // ============================================================
-    function startAnimations() {
-      if (!animationRunning) {
-        animationRunning = true;
-        animateNodes();
-        animateLines();
+        document.getElementById('unlockError').textContent = 'Wrong password — try again.';
       }
     }
 
-    function animateNodes() {
-      if (!animationRunning) return;
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const time = Date.now() / 1000;
-      nodeElems.forEach(n => {
-        if (n.el.style.display === 'none') return;
-        const rad = (n.angle + time * n.speed * 10 + n.offset) * Math.PI / 180;
-        const x = centerX + n.radiusX * Math.cos(rad) - 60;
-        const y = centerY + n.radiusY * Math.sin(rad) - 60;
-        n.el.style.left = x + 'px';
-        n.el.style.top = y + 'px';
-        n.el.style.transform = `rotate3d(${Math.sin(rad)}, ${Math.cos(rad)}, 0, ${Math.sin(time*2)*6}deg)`;
-      });
-      nodesAnimationId = requestAnimationFrame(animateNodes);
-    }
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
 
-    const canvas = document.getElementById('hubCanvas');
-    const ctx = canvas.getContext('2d');
-    function setupCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    setupCanvas();
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-    function animateLines() {
-      if (!animationRunning) return;
-      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      nodeElems.forEach(n => {
-        if (n.el.style.display === 'none') return;
-        const rect = n.el.getBoundingClientRect();
-        const nx = rect.left + rect.width/2, ny = rect.top + rect.height/2;
-        const grad = ctx.createLinearGradient(cx, cy, nx, ny);
-        grad.addColorStop(0, 'rgba(96,165,250,0.6)');
-        grad.addColorStop(1, 'rgba(96,165,250,0.15)');
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(nx, ny);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(nx, ny);
-        ctx.strokeStyle = 'rgba(96,165,250,0.08)';
-        ctx.lineWidth = 12;
-        ctx.stroke();
-      });
-      linesAnimationId = requestAnimationFrame(animateLines);
-    }
-
-    // ============================================================
-    // RESIZE
-    // ============================================================
-    window.addEventListener('resize', () => {
-      setupCanvas();
-      if (links.length) createNodes();
+    document.querySelectorAll('.overlay').forEach(ov => {
+      ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); });
     });
 
-    // ============================================================
-    // CONFETTI
-    // ============================================================
-    function launchConfetti() {
-      const colors = ['#3b82f6','#60a5fa','#facc15','#fff','#10b981'];
-      confetti({ particleCount: 120, spread: 100, origin: { y: 0.6 }, colors });
-    }
-
-    // ============================================================
-    // EVENT LISTENERS
-    // ============================================================
-    function setupEventListeners() {
-      searchInput.addEventListener('input', (e) => {
-        const val = e.target.value;
-        filterNodes(val);
-        clearSearch.classList.toggle('visible', val.length > 0);
-      });
-      clearSearch.addEventListener('click', clearSearchInput);
-
-      document.getElementById('themeToggle').addEventListener('click', () => {
-        changeTheme(currentTheme === 'dark' ? 'light' : 'dark');
-      });
-      document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', () => changeTheme(btn.dataset.theme));
-      });
-
-      document.getElementById('infoBtn').addEventListener('click', () => {
-        showNotification(`HUB · ${links.length} links loaded`);
-      });
-      document.getElementById('refreshBtn').addEventListener('click', () => {
-        loadLinksFromSheet();
-        showNotification('Refreshing...');
-      });
-
-      document.querySelector('.centerOrb').addEventListener('click', () => {
-        launchConfetti();
-        showNotification('✨ Hub activated');
-      });
-
-      pinSubmit.addEventListener('click', verifyPin);
-      pinCancel.addEventListener('click', closePinModal);
-      pinInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyPin(); });
-      pinModal.addEventListener('click', (e) => { if (e.target === pinModal) closePinModal(); });
-
-      // Keep animations alive
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && animationRunning) startAnimations();
-      });
-      window.addEventListener('focus', () => { if (animationRunning) startAnimations(); });
-    }
+    // initial load + polling
+    loadItems();
+    setInterval(() => loadItems(true), POLL_MS);
   </script>
 </body>
 </html>
